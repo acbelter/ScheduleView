@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:schedule="http://schemas.android.com/apk/res-auto"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+    <com.acbelter.scheduleview.ScheduleView
+        android:id="@+id/schedule"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp"
+        schedule:item_paddingLeft="8dp"
+        schedule:item_paddingRight="8dp"
+        schedule:internal_paddingTop="8dp"
+        schedule:internal_paddingBottom="8dp"
+        schedule:timeMarksDistance="40dp"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Add items"
+        android:onClick="addTestItems"/>
+</LinearLayout>
