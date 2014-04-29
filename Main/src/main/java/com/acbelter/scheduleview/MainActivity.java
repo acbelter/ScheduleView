@@ -20,6 +20,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mSchedule = (ScheduleView) findViewById(R.id.schedule);
+        mSchedule.initTimeMarks(8, 0, false);
         mTestButton = (Button) findViewById(R.id.test_button);
 
         ArrayList<ScheduleItem> items;

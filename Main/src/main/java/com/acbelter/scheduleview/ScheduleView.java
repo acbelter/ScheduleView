@@ -43,9 +43,13 @@ import android.widget.AdapterView;
 import android.widget.OverScroller;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 // TODO Position and height of items according to the time
@@ -131,27 +135,6 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
 
         init(context);
 
-        mTimeMarks = new ArrayList<String>();
-        mTimeMarks.add("08:00");
-        mTimeMarks.add("09:00");
-        mTimeMarks.add("10:00");
-        mTimeMarks.add("11:00");
-        mTimeMarks.add("12:00");
-        mTimeMarks.add("13:00");
-        mTimeMarks.add("14:00");
-        mTimeMarks.add("15:00");
-        mTimeMarks.add("16:00");
-        mTimeMarks.add("17:00");
-        mTimeMarks.add("18:00");
-        mTimeMarks.add("19:00");
-        mTimeMarks.add("20:00");
-        mTimeMarks.add("21:00");
-        mTimeMarks.add("22:00");
-        mTimeMarks.add("23:00");
-        mTimeMarks.add("00:00");
-
-        initTimeMarkView();
-
         setVerticalScrollBarEnabled(true);
         setHorizontalScrollBarEnabled(false);
 
@@ -208,6 +191,46 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 mIsActionMode = false;
             }
         };
+    }
+
+    /**
+     * @param startDayHour 0-23
+     * @param endDayHour 0-23
+     * @param format24
+     */
+    public void initTimeMarks(int startDayHour, int endDayHour, boolean format24) {
+        if (startDayHour < 0 || startDayHour > 23) {
+            throw new IllegalArgumentException("Incorrect startDayMinutes.");
+        }
+
+        if (endDayHour < 0 || endDayHour > 23) {
+            throw new IllegalArgumentException("Incorrect endDayMinutes.");
+        }
+
+        fillTimeMarksTitles(startDayHour, endDayHour, format24);
+        initTimeMarkView(format24);
+    }
+
+    private void fillTimeMarksTitles(int startDayHour, int endDayHour, boolean format24) {
+        SimpleDateFormat timeFormat;
+        if (format24) {
+            timeFormat = new SimpleDateFormat("HH:mm");
+        } else {
+            timeFormat = new SimpleDateFormat("hh:mm aa", Locale.ENGLISH);
+        }
+
+        Calendar c = Calendar.getInstance();
+        c.set(Calendar.HOUR_OF_DAY, startDayHour);
+        c.set(Calendar.MINUTE, 0);
+
+        mTimeMarks = new ArrayList<String>();
+        while (c.get(Calendar.HOUR_OF_DAY) != endDayHour) {
+            mTimeMarks.add(timeFormat.format(new Date(c.getTimeInMillis())));
+            c.add(Calendar.HOUR_OF_DAY, 1);
+            if (c.get(Calendar.HOUR_OF_DAY) == endDayHour) {
+                mTimeMarks.add(timeFormat.format(new Date(c.getTimeInMillis())));
+            }
+        }
     }
 
     private void deleteSelectedItems() {
@@ -393,9 +416,13 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
         public View timeLine;
     }
 
-    private void initTimeMarkView() {
+    private void initTimeMarkView(boolean format24) {
         if (mTimeMark == null) {
-            mTimeMark = mInflater.inflate(R.layout.time_mark, null);
+            if (format24) {
+                mTimeMark = mInflater.inflate(R.layout.time_mark_24, null);
+            } else {
+                mTimeMark = mInflater.inflate(R.layout.time_mark_12, null);
+            }
 
             ViewHolder holder = new ViewHolder();
             holder.time = (TextView) mTimeMark.findViewById(R.id.time);
