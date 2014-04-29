@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ScheduleView</string>
+    <string name="delete">Delete</string>
 </resources>

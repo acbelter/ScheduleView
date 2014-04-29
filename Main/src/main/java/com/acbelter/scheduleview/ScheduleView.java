@@ -29,24 +29,31 @@ import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.EdgeEffectCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
+import android.view.ActionMode;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Adapter;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.OverScroller;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
-
-// TODO Single/multiply selection
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 // TODO Position and height of items according to the time
 // TODO Checking the correctness of input schedule
-public class ScheduleView extends AdapterView {
+// TODO Remove non visible views
+public class ScheduleView extends AdapterView<ScheduleAdapter> {
+    private static final boolean DEBUG = false;
+    private static final String DEBUG_TAG = "DEBUG_TAG";
     // The distance between the first time mark and the top of the view
     private int mInternalPaddingTop;
     // The distance between the last time mark and the bottom of the view
@@ -55,7 +62,7 @@ public class ScheduleView extends AdapterView {
     private int mTimeMarksDistance;
 
     private LayoutInflater mInflater;
-    private Adapter mAdapter;
+    private ScheduleAdapter mAdapter;
 
     private View mTimeMark;
     private int mTimeMarkHeight;
@@ -80,7 +87,6 @@ public class ScheduleView extends AdapterView {
     private Rect mClipRect;
     private Rect mClickedViewBounds;
 
-    private View mCachedView;
     private DataSetObserver mDataSetObserver;
 
     private GestureDetector mGestureDetector;
@@ -93,10 +99,17 @@ public class ScheduleView extends AdapterView {
     private boolean mTopEdgeEffectActive;
     private boolean mBottomEdgeEffectActive;
 
+    private ActionMode mActionMode;
+    private boolean mIsActionMode;
+    private ActionMode.Callback mActionModeCallback;
+
+    private Set<Long> mSelectedIds;
+
     public ScheduleView(Context context, AttributeSet attrs) {
         super(context, attrs);
         mClipRect = new Rect();
         mClickedViewBounds = new Rect();
+        mSelectedIds = new HashSet<Long>();
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
         mTopEdgeEffect = new EdgeEffectCompat(context);
@@ -106,15 +119,13 @@ public class ScheduleView extends AdapterView {
             @Override
             public void onChanged() {
                 super.onChanged();
-                removeAllViewsInLayout();
-                requestLayout();
+                update();
             }
 
             @Override
             public void onInvalidated() {
                 super.onInvalidated();
-                removeAllViewsInLayout();
-                requestLayout();
+                update();
             }
         };
 
@@ -168,6 +179,50 @@ public class ScheduleView extends AdapterView {
 
         // Draw the background even if no items to display
         setWillNotDraw(false);
+
+        mActionModeCallback = new ActionMode.Callback() {
+            @Override
+            public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+                mode.getMenuInflater().inflate(R.menu.menu_context, menu);
+                mIsActionMode = true;
+                return true;
+            }
+
+            @Override
+            public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+                return false;
+            }
+
+            @Override
+            public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+                if (item.getItemId() == R.id.delete_items) {
+                    deleteSelectedItems();
+                }
+                return false;
+            }
+
+            @Override
+            public void onDestroyActionMode(ActionMode mode) {
+                clearSelection();
+                mActionMode = null;
+                mIsActionMode = false;
+            }
+        };
+    }
+
+    private void deleteSelectedItems() {
+        for (Long id : mSelectedIds) {
+            mAdapter.removeForId(id);
+        }
+        mAdapter.notifyDataSetChanged();
+        mSelectedIds.clear();
+        finishActionMode();
+    }
+
+    private void update() {
+        clearSelection();
+        removeAllViewsInLayout();
+        requestLayout();
     }
 
     private void init(Context context) {
@@ -176,6 +231,10 @@ public class ScheduleView extends AdapterView {
             mGestureListener = new GestureDetector.SimpleOnGestureListener() {
                 @Override
                 public boolean onDown(MotionEvent e) {
+                    if (DEBUG) {
+                        Log.d(DEBUG_TAG, "onDown() y=" + mListY);
+                    }
+
                     releaseEdgeEffects();
                     mOverScroller.forceFinished(true);
                     return true;
@@ -183,6 +242,10 @@ public class ScheduleView extends AdapterView {
 
                 @Override
                 public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    if (DEBUG) {
+                        Log.d(DEBUG_TAG, "onFling() y=" + mListY);
+                    }
+
                     mScrollDirection = velocityY > 0 ? 1 : -1;
                     mOverScroller.fling(0, mListY, 0, (int) velocityY, 0, 0, -mDeltaHeight, 0);
                     if (!awakenScrollBars()) {
@@ -216,12 +279,30 @@ public class ScheduleView extends AdapterView {
 
                 @Override
                 public void onLongPress(MotionEvent e) {
-                    super.onLongPress(e);
+                    if (DEBUG) {
+                        Log.d(DEBUG_TAG, "onLongPress() y=" + mListY);
+                    }
+
                     for (int i = 0; i < getChildCount(); i++) {
                         View child = getChildAt(i);
                         child.getHitRect(mClickedViewBounds);
                         if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
-                            Toast.makeText(getContext(), "long press: " + i, Toast.LENGTH_SHORT).show();
+                            if (!mIsActionMode) {
+                                mActionMode = startActionMode(mActionModeCallback);
+                                mIsActionMode = true;
+                            }
+
+                            if (!child.isSelected()) {
+                                mSelectedIds.add(mAdapter.getItemId(i));
+                                child.setSelected(true);
+                            } else {
+                                mSelectedIds.remove(mAdapter.getItemId(i));
+                                child.setSelected(false);
+                            }
+
+                            if (mSelectedIds.isEmpty()) {
+                                finishActionMode();
+                            }
                             return;
                         }
                     }
@@ -229,11 +310,32 @@ public class ScheduleView extends AdapterView {
 
                 @Override
                 public boolean onSingleTapConfirmed(MotionEvent e) {
+                    if (DEBUG) {
+                        Log.d(DEBUG_TAG, "onSingleTapConfirmed() y=" + mListY);
+                    }
+
                     for (int i = 0; i < getChildCount(); i++) {
                         View child = getChildAt(i);
                         child.getHitRect(mClickedViewBounds);
                         if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
-                            Toast.makeText(getContext(), "single tap: " + i, Toast.LENGTH_SHORT).show();
+                            if (!mIsActionMode) {
+                                OnItemClickListener callback = getOnItemClickListener();
+                                if (callback != null) {
+                                    callback.onItemClick(ScheduleView.this, child, i, mAdapter.getItemId(i));
+                                }
+                            } else {
+                                if (!child.isSelected()) {
+                                    mSelectedIds.add(mAdapter.getItemId(i));
+                                    child.setSelected(true);
+                                } else {
+                                    mSelectedIds.remove(mAdapter.getItemId(i));
+                                    child.setSelected(false);
+                                }
+
+                                if (mSelectedIds.isEmpty()) {
+                                    finishActionMode();
+                                }
+                            }
                             return true;
                         }
                     }
@@ -243,6 +345,23 @@ public class ScheduleView extends AdapterView {
 
             mGestureDetector = new GestureDetector(context, mGestureListener);
         }
+    }
+
+    private void setSelection() {
+        for (int i = 0; i < mAdapter.getCount(); i++) {
+            if (mSelectedIds.contains(mAdapter.getItemId(i))) {
+                getChildAt(i).setSelected(true);
+            } else {
+                getChildAt(i).setSelected(false);
+            }
+        }
+    }
+
+    private void clearSelection() {
+        for (int i = 0; i < getChildCount(); i++) {
+            getChildAt(i).setSelected(false);
+        }
+        mSelectedIds.clear();
     }
 
     private void recalculateOffset() {
@@ -287,22 +406,42 @@ public class ScheduleView extends AdapterView {
     }
 
     @Override
-    public Adapter getAdapter() {
+    public ScheduleAdapter getAdapter() {
         return mAdapter;
     }
 
     @Override
-    public void setAdapter(Adapter adapter) {
+    public void setAdapter(ScheduleAdapter adapter) {
+        if (mAdapter != null && mDataSetObserver != null) {
+            mAdapter.unregisterDataSetObserver(mDataSetObserver);
+        }
+
         mAdapter = adapter;
-        mAdapter.registerDataSetObserver(mDataSetObserver);
+        if (mAdapter != null) {
+            mAdapter.registerDataSetObserver(mDataSetObserver);
+        }
+
+        finishActionMode();
+        clearSelection();
         removeAllViewsInLayout();
         requestLayout();
+        invalidate();
+    }
+
+    private void finishActionMode() {
+        if (mIsActionMode) {
+            mActionMode.finish();
+            mActionMode = null;
+            mIsActionMode = false;
+        }
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        mAdapter.unregisterDataSetObserver(mDataSetObserver);
+        if (mAdapter != null) {
+            mAdapter.unregisterDataSetObserver(mDataSetObserver);
+        }
     }
 
     @Override
@@ -316,15 +455,17 @@ public class ScheduleView extends AdapterView {
     }
 
     @Override
-    protected Parcelable onSaveInstanceState() {
+    public Parcelable onSaveInstanceState() {
         ScheduleState ss = new ScheduleState(super.onSaveInstanceState());
         ss.listY = mListY;
         ss.backgroundHeight = mBackgroundHeight;
+        ss.isActionMode = mIsActionMode;
+        ss.selectedIds = mSelectedIds;
         return ss;
     }
 
     @Override
-    protected void onRestoreInstanceState(Parcelable state) {
+    public void onRestoreInstanceState(Parcelable state) {
         if (!(state instanceof ScheduleState)) {
             super.onRestoreInstanceState(state);
             return;
@@ -335,6 +476,12 @@ public class ScheduleView extends AdapterView {
 
         mListY = ss.listY;
         mOldBackgroundHeight = ss.backgroundHeight;
+        mIsActionMode = ss.isActionMode;
+        mSelectedIds = ss.selectedIds;
+
+        if (mIsActionMode) {
+            mActionMode = startActionMode(mActionModeCallback);
+        }
     }
 
     @Override
@@ -342,6 +489,7 @@ public class ScheduleView extends AdapterView {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         mViewWidth = MeasureSpec.getSize(widthMeasureSpec);
         mViewHeight = MeasureSpec.getSize(heightMeasureSpec);
+        setMeasuredDimension(mViewWidth, mViewHeight);
 
         mTimeMark.measure(MeasureSpec.makeMeasureSpec(mViewWidth
                         - getPaddingLeft() - getPaddingRight(), MeasureSpec.EXACTLY),
@@ -370,7 +518,7 @@ public class ScheduleView extends AdapterView {
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
-        if (mAdapter == null) {
+        if (mAdapter == null || mAdapter.isEmpty()) {
             return;
         }
 
@@ -384,20 +532,16 @@ public class ScheduleView extends AdapterView {
 
     private void addAndMeasureItemViews() {
         for (int i = 0; i < mAdapter.getCount(); i++) {
-            View child = mAdapter.getView(i, mCachedView, this);
-
-            if (mCachedView == null) {
-                mCachedView = child;
-            }
-
-            LayoutParams params = child.getLayoutParams();
+            // TODO Cache non visible views and use them
+            View child = mAdapter.getView(i, null, this);
+            ViewGroup.LayoutParams params = child.getLayoutParams();
             if (params == null) {
                 params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
             }
             addViewInLayout(child, i, params, true);
-
             child.measure(MeasureSpec.EXACTLY | mItemWidth, MeasureSpec.UNSPECIFIED);
         }
+        setSelection();
     }
 
     private void positionItemViews() {
@@ -421,6 +565,11 @@ public class ScheduleView extends AdapterView {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        return mGestureDetector.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent event) {
         return mGestureDetector.onTouchEvent(event);
     }
 
@@ -555,15 +704,21 @@ public class ScheduleView extends AdapterView {
     public static class ScheduleState extends BaseSavedState {
         int listY;
         int backgroundHeight;
+        boolean isActionMode;
+        Set<Long> selectedIds;
 
         public ScheduleState(Parcelable superState) {
             super(superState);
+            selectedIds = new HashSet<Long>();
         }
 
         private ScheduleState(Parcel in) {
             super(in);
             listY = in.readInt();
             backgroundHeight = in.readInt();
+            isActionMode = in.readInt() == 1;
+            Long[] ids = (Long[]) in.readArray(Long.class.getClassLoader());
+            selectedIds = new HashSet<Long>(Arrays.asList(ids));
         }
 
         public static final Parcelable.Creator<ScheduleState> CREATOR = new Parcelable.Creator<ScheduleState>() {
@@ -583,6 +738,8 @@ public class ScheduleView extends AdapterView {
             super.writeToParcel(out, flags);
             out.writeInt(listY);
             out.writeInt(backgroundHeight);
+            out.writeInt(isActionMode ? 1 : 0);
+            out.writeArray(selectedIds.toArray(new Long[selectedIds.size()]));
         }
     }
 }

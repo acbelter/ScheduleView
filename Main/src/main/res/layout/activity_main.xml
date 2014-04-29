@@ -18,10 +18,11 @@
         schedule:internal_paddingBottom="8dp"
         schedule:timeMarksDistance="40dp"/>
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:text="Add items"
-        android:onClick="addTestItems"/>
+        <Button
+            android:id="@+id/test_button"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Add items"
+            android:onClick="onTest"/>
 </LinearLayout>
