@@ -207,6 +207,10 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             throw new IllegalArgumentException("Incorrect endDayMinutes.");
         }
 
+        if (startDayHour == endDayHour) {
+            throw new IllegalArgumentException("Incorrect arguments: startDayMinutes=endDayMinutes.");
+        }
+
         fillTimeMarksTitles(startDayHour, endDayHour, format24);
         initTimeMarkView(format24);
     }
@@ -267,6 +271,11 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                     if (DEBUG) {
                         Log.d(DEBUG_TAG, "onFling() y=" + mListY);
+                    }
+
+                    // Fling isn't needed
+                    if (mDeltaHeight < 0) {
+                        return true;
                     }
 
                     mScrollDirection = velocityY > 0 ? 1 : -1;
@@ -534,11 +543,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
         if (mOldBackgroundHeight != -1) {
             float ratio = (float) mBackgroundHeight / mOldBackgroundHeight;
             mListY = (int) (mListY * ratio);
+            recalculateOffset();
             mOldBackgroundHeight = -1;
-
-            if (mListY < -mDeltaHeight) {
-                mListY = -mDeltaHeight;
-            }
         }
     }
 

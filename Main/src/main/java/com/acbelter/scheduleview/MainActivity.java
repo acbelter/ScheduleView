@@ -20,19 +20,21 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mSchedule = (ScheduleView) findViewById(R.id.schedule);
-        mSchedule.initTimeMarks(8, 0, false);
+        mSchedule.initTimeMarks(8, 0, true);
         mTestButton = (Button) findViewById(R.id.test_button);
 
         ArrayList<ScheduleItem> items;
         if (savedInstanceState == null) {
             items = new ArrayList<ScheduleItem>();
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 1; i++) {
                 items.add(new ScheduleItem(i, 1393912800000L, 1393917900000L, "item " + i));
             }
         } else {
             items = savedInstanceState.getParcelableArrayList("items");
             mButtonClicked = savedInstanceState.getBoolean("button_clicked");
-            mTestButton.setText("Clear");
+            if (mButtonClicked) {
+                mTestButton.setText("Clear");
+            }
         }
 
         mAdapter = new ScheduleAdapter(this, items);
