@@ -26,9 +26,10 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         ArrayList<ScheduleItem> items;
         if (savedInstanceState == null) {
             items = new ArrayList<ScheduleItem>();
-            for (int i = 0; i < 1; i++) {
-                items.add(new ScheduleItem(i, 1393912800000L, 1393917900000L, "item " + i));
-            }
+            items.add(new ScheduleItem(0, 1393912800000L, 1393917900000L, "item 0"));
+            items.add(new ScheduleItem(1, 1393919100000L, 1393924200000L, "item 1"));
+            items.add(new ScheduleItem(2, 1393930500000L, 1393941300000L, "item 2"));
+            items.add(new ScheduleItem(3, 1393952400000L, 1393959600000L, "item 3"));
         } else {
             items = savedInstanceState.getParcelableArrayList("items");
             mButtonClicked = savedInstanceState.getBoolean("button_clicked");
@@ -37,7 +38,11 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
             }
         }
 
-        mAdapter = new ScheduleAdapter(this, items);
+        try {
+            mAdapter = new ScheduleAdapter(this, items);
+        } catch (ScheduleAdapter.InvalidScheduleException e) {
+            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+        }
         mSchedule.setAdapter(mAdapter);
         mSchedule.setOnItemClickListener(this);
     }

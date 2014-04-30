@@ -52,12 +52,11 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
-// TODO Position and height of items according to the time
-// TODO Checking the correctness of input schedule
 // TODO Remove non visible views
 public class ScheduleView extends AdapterView<ScheduleAdapter> {
     private static final boolean DEBUG = false;
     private static final String DEBUG_TAG = "DEBUG_TAG";
+    private static final long MILLIS_IN_HOUR = 60*60*1000;
     // The distance between the first time mark and the top of the view
     private int mInternalPaddingTop;
     // The distance between the last time mark and the bottom of the view
@@ -71,13 +70,16 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     private View mTimeMark;
     private int mTimeMarkHeight;
 
+    private int mHourHeight;
+    private long mStartTime;
+    private long mEndTime;
+
     private int mViewWidth;
     private int mViewHeight;
     // Width of the schedule items
     private int mItemWidth;
     private int mBackgroundHeight;
     private int mOldBackgroundHeight = -1;
-    private int mItemsDistance = 20;
     // The difference between the height of background and the height of the view
     private int mDeltaHeight;
 
@@ -211,6 +213,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             throw new IllegalArgumentException("Incorrect arguments: startDayMinutes=endDayMinutes.");
         }
 
+        mStartTime = startDayHour * MILLIS_IN_HOUR;
+        mEndTime = endDayHour * MILLIS_IN_HOUR;
         fillTimeMarksTitles(startDayHour, endDayHour, format24);
         initTimeMarkView(format24);
     }
@@ -529,12 +533,12 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
 
         mTimeMark.measure(MeasureSpec.makeMeasureSpec(mViewWidth
                         - getPaddingLeft() - getPaddingRight(), MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
-        );
+                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
 
         ViewHolder holder = (ViewHolder) mTimeMark.getTag();
         mItemWidth = holder.timeLine.getMeasuredWidth() - mLeftPadding - mRightPadding;
         mTimeMarkHeight = mTimeMark.getMeasuredHeight();
+        mHourHeight = mTimeMarkHeight + mTimeMarksDistance;
 
         mBackgroundHeight = calculateBackgroundHeight();
         mDeltaHeight = mBackgroundHeight - mViewHeight;
@@ -572,21 +576,39 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
             }
             addViewInLayout(child, i, params, true);
-            child.measure(MeasureSpec.EXACTLY | mItemWidth, MeasureSpec.UNSPECIFIED);
+
+            ScheduleItem item = mAdapter.getItem(i);
+            child.measure(MeasureSpec.makeMeasureSpec(mItemWidth, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(calculateDistance(item.start, item.end), MeasureSpec.EXACTLY));
+
         }
         setSelection();
     }
 
+    private int calculateDistance(long start, long end) {
+        float hours = (float) (end - start) / MILLIS_IN_HOUR;
+        return (int) (hours * mHourHeight);
+    }
+
     private void positionItemViews() {
-        int top = mListY + mInternalPaddingTop + getPaddingTop();
-        for (int i = 0; i < getChildCount(); i++) {
+        final int right = mViewWidth - getPaddingRight() - mRightPadding;
+        for (int i = 0; i < mAdapter.getCount(); i++) {
             int width = getChildAt(i).getMeasuredWidth();
             int height = getChildAt(i).getMeasuredHeight();
-            int right = mViewWidth - getPaddingRight() - mRightPadding;
+
+            ScheduleItem item = mAdapter.getItem(i);
+
+            int top = mListY + mInternalPaddingTop + getPaddingTop() + mTimeMarkHeight / 2 +
+                    calculateDistance(mStartTime, getTimeInMillis(item.start));
 
             getChildAt(i).layout(right - width, top, right, top + height);
-            top += height + mItemsDistance;
         }
+    }
+
+    private long getTimeInMillis(long time) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(time);
+        return (c.get(Calendar.HOUR_OF_DAY) * 60 + c.get(Calendar.MINUTE))*60*1000;
     }
 
     private void releaseEdgeEffects() {

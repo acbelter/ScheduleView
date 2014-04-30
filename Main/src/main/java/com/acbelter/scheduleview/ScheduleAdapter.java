@@ -24,12 +24,13 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class ScheduleAdapter extends BaseAdapter {
     private LayoutInflater mInflater;
     protected ArrayList<ScheduleItem> mItems;
 
-    public ScheduleAdapter(Context context, ArrayList<ScheduleItem> items) {
+    public ScheduleAdapter(Context context, ArrayList<ScheduleItem> items) throws InvalidScheduleException {
         super();
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         if (items != null) {
@@ -37,6 +38,25 @@ public class ScheduleAdapter extends BaseAdapter {
         } else {
             mItems = new ArrayList<ScheduleItem>(0);
         }
+        Collections.sort(mItems);
+        if (!checkSchedule(mItems)) {
+            throw new InvalidScheduleException("Invalid schedule.");
+        }
+    }
+
+    private boolean checkSchedule(ArrayList<ScheduleItem> items) {
+        if (items == null) {
+            return true;
+        }
+
+        for (int i = 0; i < items.size() - 1; i++) {
+            if (items.get(i).end > items.get(i+1).start ||
+                    items.get(i).end - items.get(i+1).start > 24*60*60*10000) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public void add(ScheduleItem item) {
@@ -90,5 +110,11 @@ public class ScheduleAdapter extends BaseAdapter {
 
         holder.text.setText(getItem(position).text);
         return convertView;
+    }
+
+    public static class InvalidScheduleException extends Exception {
+        public InvalidScheduleException(String message) {
+            super(message);
+        }
     }
 }

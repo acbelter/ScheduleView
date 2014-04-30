@@ -19,7 +19,7 @@ package com.acbelter.scheduleview;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-public class ScheduleItem implements Parcelable {
+public class ScheduleItem implements Parcelable, Comparable<ScheduleItem> {
     public long id;
     public long start;
     public long end;
@@ -63,5 +63,16 @@ public class ScheduleItem implements Parcelable {
         out.writeLong(start);
         out.writeLong(end);
         out.writeString(text);
+    }
+
+    @Override
+    public int compareTo(ScheduleItem another) {
+        if (start < another.start) {
+            return -1;
+        }
+        if (start > another.start) {
+            return 1;
+        }
+        return 0;
     }
 }
