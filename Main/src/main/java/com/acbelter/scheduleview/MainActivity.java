@@ -4,47 +4,45 @@ import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 
 public class MainActivity extends ActionBarActivity implements AdapterView.OnItemClickListener {
+    private static final int START_HOUR = 8;
+    private static final int END_HOUR = 0;
     private ScheduleAdapter mAdapter;
-    private boolean mButtonClicked;
+    private boolean mNewItemAdded;
     private ScheduleView mSchedule;
-    private Button mTestButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mSchedule = (ScheduleView) findViewById(R.id.schedule);
-        mSchedule.initTimeMarks(8, 0, true);
-        mTestButton = (Button) findViewById(R.id.test_button);
+        mSchedule.initTimeMarks(START_HOUR, END_HOUR, true);
+        mSchedule.setOnItemClickListener(this);
 
-        ArrayList<ScheduleItem> items;
+        ArrayList<BaseScheduleItem> items;
         if (savedInstanceState == null) {
-            items = new ArrayList<ScheduleItem>();
-            items.add(new ScheduleItem(0, 1393912800000L, 1393917900000L, "item 0"));
-            items.add(new ScheduleItem(1, 1393919100000L, 1393924200000L, "item 1"));
-            items.add(new ScheduleItem(2, 1393930500000L, 1393941300000L, "item 2"));
-            items.add(new ScheduleItem(3, 1393952400000L, 1393959600000L, "item 3"));
+            items = new ArrayList<BaseScheduleItem>();
+            items.add(new BaseScheduleItem(0, 1393912800000L, 1393917900000L));
+            items.add(new BaseScheduleItem(1, 1393919100000L, 1393924200000L));
+            items.add(new BaseScheduleItem(2, 1393930500000L, 1393941300000L));
+            items.add(new BaseScheduleItem(3, 1393952400000L, 1393959600000L));
         } else {
             items = savedInstanceState.getParcelableArrayList("items");
-            mButtonClicked = savedInstanceState.getBoolean("button_clicked");
-            if (mButtonClicked) {
-                mTestButton.setText("Clear");
-            }
+            mNewItemAdded = savedInstanceState.getBoolean("new_item_added");
         }
 
         try {
-            mAdapter = new ScheduleAdapter(this, items);
+            if (items != null) {
+                mAdapter = new ScheduleAdapter(this, items, START_HOUR, END_HOUR);
+            }
+            mSchedule.setAdapter(mAdapter);
         } catch (ScheduleAdapter.InvalidScheduleException e) {
             Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
         }
-        mSchedule.setAdapter(mAdapter);
-        mSchedule.setOnItemClickListener(this);
     }
 
     @Override
@@ -53,23 +51,33 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         if (mAdapter != null) {
             outState.putParcelableArrayList("items", mAdapter.getItems());
         }
-        outState.putBoolean("button_clicked", mButtonClicked);
+        outState.putBoolean("new_item_added", mNewItemAdded);
     }
 
-    public void onTest(View view) {
-        if (!mButtonClicked) {
-            mAdapter.add(new ScheduleItem(100500, 1393912800000L, 1393917900000L, "new item"));
-            mAdapter.notifyDataSetChanged();
-            mButtonClicked = true;
-            mTestButton.setText("Clear");
+    public void addNewItem(View view) {
+        if (!mNewItemAdded) {
+            if (mAdapter != null) {
+                mAdapter.add(new BaseScheduleItem(100500,
+                        1393941300000L + 60 * 60 * 1000,
+                        1393941300000L + 2 * 60 * 60 * 1000));
+                mAdapter.notifyDataSetChanged();
+                mNewItemAdded = true;
+            } else {
+                Toast.makeText(getApplicationContext(), "Adapter is null.", Toast.LENGTH_SHORT).show();
+            }
         } else {
-            mAdapter = null;
-            mSchedule.setAdapter(null);
+            Toast.makeText(getApplicationContext(), "New element already added.", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public void setNullAdapter(View view) {
+        mAdapter = null;
+        mSchedule.setAdapter(null);
+        mNewItemAdded = false;
     }
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        Toast.makeText(getApplicationContext(), "single tap: " + position, Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), "Single tap: id=" + id, Toast.LENGTH_SHORT).show();
     }
 }

@@ -24,55 +24,114 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 
 public class ScheduleAdapter extends BaseAdapter {
     private LayoutInflater mInflater;
-    protected ArrayList<ScheduleItem> mItems;
+    protected ArrayList<BaseScheduleItem> mItems;
+    private int mStartHour;
+    private int mEndHour;
+    private SimpleDate mDate;
 
-    public ScheduleAdapter(Context context, ArrayList<ScheduleItem> items) throws InvalidScheduleException {
+    public ScheduleAdapter(Context context, ArrayList<BaseScheduleItem> items,
+                           int startHour, int endHour) throws InvalidScheduleException {
         super();
+        mStartHour = startHour;
+        mEndHour = endHour;
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         if (items != null) {
             mItems = items;
         } else {
-            mItems = new ArrayList<ScheduleItem>(0);
+            mItems = new ArrayList<BaseScheduleItem>(0);
         }
+
+        prepareAndCheckSchedule();
+    }
+
+    private void prepareAndCheckSchedule() throws InvalidScheduleException {
+        if (mItems.isEmpty()) {
+            return;
+        }
+
         Collections.sort(mItems);
-        if (!checkSchedule(mItems)) {
-            throw new InvalidScheduleException("Invalid schedule.");
+        mDate = new SimpleDate(mItems.get(0).start);
+        for (int i = 0; i < mItems.size(); i++) {
+            SimpleDate start = new SimpleDate(mItems.get(i).start);
+            SimpleDate end = new SimpleDate(mItems.get(i).end);
+            if (!mDate.equals(start)) {
+                throw new InvalidScheduleException("Different start dates.");
+            }
+            if (!mDate.equals(end)) {
+                throw new InvalidScheduleException("Different start and end dates.");
+            }
+        }
+
+        if (mStartHour != 0 && getHour(mItems.get(0).start) < mStartHour) {
+            throw new InvalidScheduleException("Incorrect first time mark.");
+        }
+
+        if (mEndHour != 0 && getHour(mItems.get(mItems.size() - 1).end) > mEndHour) {
+            throw new InvalidScheduleException("Incorrect last time mark.");
+        }
+
+
+        for (int i = 0; i < mItems.size() - 1; i++) {
+            if (mItems.get(i).end > mItems.get(i+1).start) {
+                throw new InvalidScheduleException("Intersecting items.");
+            }
         }
     }
 
-    private boolean checkSchedule(ArrayList<ScheduleItem> items) {
-        if (items == null) {
+    private int getHour(long millis) {
+        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(millis);
+        return c.get(Calendar.HOUR_OF_DAY);
+    }
+
+    public boolean add(BaseScheduleItem newItem) {
+        if (mItems.isEmpty()) {
+            mItems.add(newItem);
             return true;
         }
 
-        for (int i = 0; i < items.size() - 1; i++) {
-            if (items.get(i).end > items.get(i+1).start ||
-                    items.get(i).end - items.get(i+1).start > 24*60*60*10000) {
+        SimpleDate start = new SimpleDate(newItem.start);
+        SimpleDate end = new SimpleDate(newItem.end);
+        if (!mDate.equals(start) || !mDate.equals(end)) {
+            return false;
+        }
+
+        BaseScheduleItem item;
+        for (int i = 0; i < mItems.size(); i++) {
+            item = mItems.get(i);
+            if (newItem.start == item.start || newItem.end == item.end) {
+                return false;
+            }
+            if (newItem.start > item.start && newItem.start < item.end) {
+                return false;
+            }
+            if (newItem.end > item.start && newItem.end < item.end) {
                 return false;
             }
         }
 
+        mItems.add(newItem);
         return true;
     }
 
-    public void add(ScheduleItem item) {
-        mItems.add(item);
-    }
-
-    public void removeForId(Long id) {
+    public int removeForId(Long id) {
+        int removed = 0;
         for (int i = 0; i < mItems.size(); i++) {
             if (mItems.get(i).id == id) {
                 mItems.remove(i);
                 i--;
+                removed++;
             }
         }
+        return removed;
     }
 
-    public ArrayList<ScheduleItem> getItems() {
+    public ArrayList<BaseScheduleItem> getItems() {
         return mItems;
     }
 
@@ -86,7 +145,7 @@ public class ScheduleAdapter extends BaseAdapter {
     }
 
     @Override
-    public ScheduleItem getItem(int position) {
+    public BaseScheduleItem getItem(int position) {
         return mItems.get(position);
     }
 
@@ -108,13 +167,49 @@ public class ScheduleAdapter extends BaseAdapter {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        holder.text.setText(getItem(position).text);
+        holder.text.setText("id " + getItem(position).id);
         return convertView;
     }
 
     public static class InvalidScheduleException extends Exception {
         public InvalidScheduleException(String message) {
             super(message);
+        }
+    }
+
+    private static class SimpleDate {
+        int day;
+        int month;
+        int year;
+
+        SimpleDate(long millis) {
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(millis);
+            day = c.get(Calendar.DAY_OF_YEAR);
+            month = c.get(Calendar.MONTH);
+            year = c.get(Calendar.YEAR);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            SimpleDate that = (SimpleDate) o;
+
+            if (day != that.day) return false;
+            if (month != that.month) return false;
+            if (year != that.year) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = day;
+            result = 31 * result + month;
+            result = 31 * result + year;
+            return result;
         }
     }
 }

@@ -22,6 +22,7 @@ import android.content.res.TypedArray;
 import android.database.DataSetObserver;
 import android.graphics.Canvas;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -53,10 +54,12 @@ import java.util.Locale;
 import java.util.Set;
 
 // TODO Remove non visible views
+// TODO Add tests
 public class ScheduleView extends AdapterView<ScheduleAdapter> {
     private static final boolean DEBUG = false;
-    private static final String DEBUG_TAG = "DEBUG_TAG";
+    private static final String DEBUG_TAG = "ScheduleView";
     private static final long MILLIS_IN_HOUR = 60*60*1000;
+    private static final int ALPHA_PERCENT = 50;
     // The distance between the first time mark and the top of the view
     private int mInternalPaddingTop;
     // The distance between the last time mark and the bottom of the view
@@ -110,6 +113,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     private ActionMode.Callback mActionModeCallback;
 
     private Set<Long> mSelectedIds;
+    private Drawable mItemSelector;
 
     public ScheduleView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -117,6 +121,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
         mClickedViewBounds = new Rect();
         mSelectedIds = new HashSet<Long>();
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mItemSelector = getResources().getDrawable(R.drawable.item_selector);
 
         mTopEdgeEffect = new EdgeEffectCompat(context);
         mBottomEdgeEffect = new EdgeEffectCompat(context);
@@ -125,13 +130,15 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             @Override
             public void onChanged() {
                 super.onChanged();
-                update();
+                removeAllViewsInLayout();
+                requestLayout();
             }
 
             @Override
             public void onInvalidated() {
                 super.onInvalidated();
-                update();
+                removeAllViewsInLayout();
+                requestLayout();
             }
         };
 
@@ -189,8 +196,9 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             @Override
             public void onDestroyActionMode(ActionMode mode) {
                 clearSelection();
-                mActionMode = null;
                 mIsActionMode = false;
+                mActionMode = null;
+                invalidate();
             }
         };
     }
@@ -250,12 +258,6 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
         finishActionMode();
     }
 
-    private void update() {
-        clearSelection();
-        removeAllViewsInLayout();
-        requestLayout();
-    }
-
     private void init(Context context) {
         if (!isInEditMode()) {
             mOverScroller = new OverScroller(context);
@@ -268,6 +270,24 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
 
                     releaseEdgeEffects();
                     mOverScroller.forceFinished(true);
+                    return true;
+                }
+
+                @Override
+                public boolean onSingleTapUp(MotionEvent e) {
+                    if (DEBUG) {
+                        Log.d(DEBUG_TAG, "onSingleTapUp() y=" + mListY);
+                    }
+
+                    if (!mIsActionMode) {
+                        for (int i = 0; i < getChildCount(); i++) {
+                            View child = getChildAt(i);
+                            child.getHitRect(mClickedViewBounds);
+                            if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
+                                child.setPressed(true);
+                            }
+                        }
+                    }
                     return true;
                 }
 
@@ -314,6 +334,23 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 }
 
                 @Override
+                public void onShowPress(MotionEvent e) {
+                    if (DEBUG) {
+                        Log.d(DEBUG_TAG, "onShowPress() y=" + mListY);
+                    }
+
+                    if (!mIsActionMode) {
+                        for (int i = 0; i < getChildCount(); i++) {
+                            View child = getChildAt(i);
+                            child.getHitRect(mClickedViewBounds);
+                            if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
+                                child.setPressed(true);
+                            }
+                        }
+                    }
+                }
+
+                @Override
                 public void onLongPress(MotionEvent e) {
                     if (DEBUG) {
                         Log.d(DEBUG_TAG, "onLongPress() y=" + mListY);
@@ -324,6 +361,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                         child.getHitRect(mClickedViewBounds);
                         if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
                             if (!mIsActionMode) {
+                                child.setPressed(false);
                                 mActionMode = startActionMode(mActionModeCallback);
                                 mIsActionMode = true;
                             }
@@ -339,6 +377,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                             if (mSelectedIds.isEmpty()) {
                                 finishActionMode();
                             }
+
+                            invalidate();
                             return;
                         }
                     }
@@ -356,6 +396,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                         if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
                             if (!mIsActionMode) {
                                 OnItemClickListener callback = getOnItemClickListener();
+                                // FIXME Add fade animation and don't use onSingleTapConfirmed for setPressed(false)
+                                child.setPressed(false);
                                 if (callback != null) {
                                     callback.onItemClick(ScheduleView.this, child, i, mAdapter.getItemId(i));
                                 }
@@ -371,6 +413,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                                 if (mSelectedIds.isEmpty()) {
                                     finishActionMode();
                                 }
+
+                                invalidate();
                             }
                             return true;
                         }
@@ -461,8 +505,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             mAdapter.registerDataSetObserver(mDataSetObserver);
         }
 
-        finishActionMode();
         clearSelection();
+        finishActionMode();
         removeAllViewsInLayout();
         requestLayout();
         invalidate();
@@ -577,7 +621,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             }
             addViewInLayout(child, i, params, true);
 
-            ScheduleItem item = mAdapter.getItem(i);
+            BaseScheduleItem item = mAdapter.getItem(i);
             child.measure(MeasureSpec.makeMeasureSpec(mItemWidth, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(calculateDistance(item.start, item.end), MeasureSpec.EXACTLY));
 
@@ -591,12 +635,16 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     }
 
     private void positionItemViews() {
+        if (mAdapter == null) {
+            return;
+        }
+
         final int right = mViewWidth - getPaddingRight() - mRightPadding;
         for (int i = 0; i < mAdapter.getCount(); i++) {
             int width = getChildAt(i).getMeasuredWidth();
             int height = getChildAt(i).getMeasuredHeight();
 
-            ScheduleItem item = mAdapter.getItem(i);
+            BaseScheduleItem item = mAdapter.getItem(i);
 
             int top = mListY + mInternalPaddingTop + getPaddingTop() + mTimeMarkHeight / 2 +
                     calculateDistance(mStartTime, getTimeInMillis(item.start));
@@ -619,8 +667,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        return mGestureDetector.onTouchEvent(event);
+    public boolean onTouchEvent(MotionEvent e) {
+        return super.onTouchEvent(e) || mGestureDetector.onTouchEvent(e);
     }
 
     @Override
@@ -717,7 +765,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
         drawEdgeEffects(canvas);
     }
 
-    public void drawEdgeEffects(Canvas canvas) {
+    private void drawEdgeEffects(Canvas canvas) {
         boolean needsInvalidate = false;
 
         final int overScrollMode = ViewCompat.getOverScrollMode(this);
@@ -753,6 +801,24 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
 
         if (needsInvalidate) {
             ViewCompat.postInvalidateOnAnimation(this);
+        }
+    }
+
+    @Override
+    protected void dispatchDraw(Canvas canvas) {
+        super.dispatchDraw(canvas);
+        if (mAdapter == null) {
+            return;
+        }
+
+        Rect bounds = new Rect();
+        for (int i = 0; i < getChildCount(); i++) {
+            if (getChildAt(i).isSelected()) {
+                getChildAt(i).getHitRect(bounds);
+                mItemSelector.setBounds(bounds);
+                mItemSelector.setAlpha((int) (ALPHA_PERCENT * 2.55f));
+                mItemSelector.draw(canvas);
+            }
         }
     }
 

@@ -2,9 +2,9 @@
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               xmlns:schedule="http://schemas.android.com/apk/res-auto"
-              android:orientation="vertical"
               android:layout_width="match_parent"
-              android:layout_height="match_parent">
+              android:layout_height="match_parent"
+              android:orientation="vertical">
 
     <com.acbelter.scheduleview.ScheduleView
         android:id="@+id/schedule"
@@ -18,12 +18,23 @@
         schedule:internal_paddingBottom="8dp"
         schedule:timeMarksDistance="40dp"/>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
         <Button
-            android:id="@+id/test_button"
-            android:visibility="gone"
-            android:layout_width="200dp"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="Add items"
-            android:onClick="onTest"/>
+            android:layout_weight="1"
+            android:text="Add new item"
+            android:onClick="addNewItem"/>
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Set null adapter"
+            android:onClick="setNullAdapter"/>
+    </LinearLayout>
 </LinearLayout>

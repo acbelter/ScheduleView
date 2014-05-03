@@ -19,36 +19,33 @@ package com.acbelter.scheduleview;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-public class ScheduleItem implements Parcelable, Comparable<ScheduleItem> {
+public class BaseScheduleItem implements Parcelable, Comparable<BaseScheduleItem> {
     public long id;
     public long start;
     public long end;
-    public String text;
 
-    public ScheduleItem(long id, long start, long end, String text) {
+    public BaseScheduleItem(long id, long start, long end) {
         this.id = id;
         this.start = start;
         this.end = end;
-        this.text = text;
     }
 
-    private ScheduleItem(Parcel in) {
+    private BaseScheduleItem(Parcel in) {
         id = in.readLong();
         start = in.readLong();
         end = in.readLong();
-        text = in.readString();
     }
 
-    public static final Parcelable.Creator<ScheduleItem> CREATOR =
-            new Parcelable.Creator<ScheduleItem>() {
+    public static final Parcelable.Creator<BaseScheduleItem> CREATOR =
+            new Parcelable.Creator<BaseScheduleItem>() {
                 @Override
-                public ScheduleItem createFromParcel(Parcel in) {
-                    return new ScheduleItem(in);
+                public BaseScheduleItem createFromParcel(Parcel in) {
+                    return new BaseScheduleItem(in);
                 }
 
                 @Override
-                public ScheduleItem[] newArray(int size) {
-                    return new ScheduleItem[size];
+                public BaseScheduleItem[] newArray(int size) {
+                    return new BaseScheduleItem[size];
                 }
             };
 
@@ -62,11 +59,10 @@ public class ScheduleItem implements Parcelable, Comparable<ScheduleItem> {
         out.writeLong(id);
         out.writeLong(start);
         out.writeLong(end);
-        out.writeString(text);
     }
 
     @Override
-    public int compareTo(ScheduleItem another) {
+    public int compareTo(BaseScheduleItem another) {
         if (start < another.start) {
             return -1;
         }
