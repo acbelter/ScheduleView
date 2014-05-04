@@ -274,24 +274,6 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 }
 
                 @Override
-                public boolean onSingleTapUp(MotionEvent e) {
-                    if (DEBUG) {
-                        Log.d(DEBUG_TAG, "onSingleTapUp() y=" + mListY);
-                    }
-
-                    if (!mIsActionMode) {
-                        for (int i = 0; i < getChildCount(); i++) {
-                            View child = getChildAt(i);
-                            child.getHitRect(mClickedViewBounds);
-                            if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
-                                child.setPressed(true);
-                            }
-                        }
-                    }
-                    return true;
-                }
-
-                @Override
                 public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                     if (DEBUG) {
                         Log.d(DEBUG_TAG, "onFling() y=" + mListY);
@@ -334,34 +316,17 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 }
 
                 @Override
-                public void onShowPress(MotionEvent e) {
-                    if (DEBUG) {
-                        Log.d(DEBUG_TAG, "onShowPress() y=" + mListY);
-                    }
-
-                    if (!mIsActionMode) {
-                        for (int i = 0; i < getChildCount(); i++) {
-                            View child = getChildAt(i);
-                            child.getHitRect(mClickedViewBounds);
-                            if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
-                                child.setPressed(true);
-                            }
-                        }
-                    }
-                }
-
-                @Override
                 public void onLongPress(MotionEvent e) {
                     if (DEBUG) {
                         Log.d(DEBUG_TAG, "onLongPress() y=" + mListY);
                     }
 
+                    View child;
                     for (int i = 0; i < getChildCount(); i++) {
-                        View child = getChildAt(i);
+                        child = getChildAt(i);
                         child.getHitRect(mClickedViewBounds);
                         if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
                             if (!mIsActionMode) {
-                                child.setPressed(false);
                                 mActionMode = startActionMode(mActionModeCallback);
                                 mIsActionMode = true;
                             }
@@ -385,19 +350,19 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 }
 
                 @Override
-                public boolean onSingleTapConfirmed(MotionEvent e) {
+                public boolean onSingleTapUp(MotionEvent e) {
                     if (DEBUG) {
                         Log.d(DEBUG_TAG, "onSingleTapConfirmed() y=" + mListY);
                     }
 
+                    View child;
                     for (int i = 0; i < getChildCount(); i++) {
-                        View child = getChildAt(i);
+                        child = getChildAt(i);
                         child.getHitRect(mClickedViewBounds);
                         if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
                             if (!mIsActionMode) {
                                 OnItemClickListener callback = getOnItemClickListener();
-                                // FIXME Add fade animation and don't use onSingleTapConfirmed for setPressed(false)
-                                child.setPressed(false);
+
                                 if (callback != null) {
                                     callback.onItemClick(ScheduleView.this, child, i, mAdapter.getItemId(i));
                                 }
@@ -416,10 +381,10 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
 
                                 invalidate();
                             }
-                            return true;
+                            break;
                         }
                     }
-                    return false;
+                    return true;
                 }
             };
 
@@ -612,9 +577,10 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     }
 
     private void addAndMeasureItemViews() {
+        View child;
         for (int i = 0; i < mAdapter.getCount(); i++) {
             // TODO Cache non visible views and use them
-            View child = mAdapter.getView(i, null, this);
+            child = mAdapter.getView(i, null, this);
             ViewGroup.LayoutParams params = child.getLayoutParams();
             if (params == null) {
                 params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
@@ -624,7 +590,6 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             BaseScheduleItem item = mAdapter.getItem(i);
             child.measure(MeasureSpec.makeMeasureSpec(mItemWidth, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(calculateDistance(item.start, item.end), MeasureSpec.EXACTLY));
-
         }
         setSelection();
     }
@@ -639,17 +604,19 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             return;
         }
 
+        View child;
         final int right = mViewWidth - getPaddingRight() - mRightPadding;
         for (int i = 0; i < mAdapter.getCount(); i++) {
-            int width = getChildAt(i).getMeasuredWidth();
-            int height = getChildAt(i).getMeasuredHeight();
+            child = getChildAt(i);
+            int width = child.getMeasuredWidth();
+            int height = child.getMeasuredHeight();
 
             BaseScheduleItem item = mAdapter.getItem(i);
 
             int top = mListY + mInternalPaddingTop + getPaddingTop() + mTimeMarkHeight / 2 +
                     calculateDistance(mStartTime, getTimeInMillis(item.start));
 
-            getChildAt(i).layout(right - width, top, right, top + height);
+            child.layout(right - width, top, right, top + height);
         }
     }
 
@@ -668,12 +635,24 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
 
     @Override
     public boolean onTouchEvent(MotionEvent e) {
-        return super.onTouchEvent(e) || mGestureDetector.onTouchEvent(e);
+        View child;
+        for (int i = 0; i < getChildCount(); i++) {
+            child = getChildAt(i);
+            child.getHitRect(mClickedViewBounds);
+            if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
+                if (DEBUG) {
+                    Log.d(DEBUG_TAG, "dispatchTouchEvent() to child " + i);
+                }
+                // FIXME Add fade animation
+                child.dispatchTouchEvent(e);
+            }
+        }
+        return mGestureDetector.onTouchEvent(e);
     }
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent event) {
-        return mGestureDetector.onTouchEvent(event);
+        return true;
     }
 
     @Override
