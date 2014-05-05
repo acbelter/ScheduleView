@@ -52,6 +52,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.TimeZone;
 
 // TODO Remove non visible views
 // TODO Add tests
@@ -73,6 +74,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     private View mTimeMark;
     private int mTimeMarkHeight;
 
+    private int mTimeZoneOffset;
     private int mHourHeight;
     private long mStartTime;
     private long mEndTime;
@@ -206,9 +208,11 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     /**
      * @param startDayHour 0-23
      * @param endDayHour 0-23
+     * @param timeZoneOffset GMT hours offset
      * @param format24
      */
-    public void initTimeMarks(int startDayHour, int endDayHour, boolean format24) {
+    public void configure(int startDayHour, int endDayHour, int timeZoneOffset,
+                          boolean format24) {
         if (startDayHour < 0 || startDayHour > 23) {
             throw new IllegalArgumentException("Incorrect startDayMinutes.");
         }
@@ -221,10 +225,21 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             throw new IllegalArgumentException("Incorrect arguments: startDayMinutes=endDayMinutes.");
         }
 
+        mTimeZoneOffset = timeZoneOffset;
         mStartTime = startDayHour * MILLIS_IN_HOUR;
         mEndTime = endDayHour * MILLIS_IN_HOUR;
         fillTimeMarksTitles(startDayHour, endDayHour, format24);
         initTimeMarkView(format24);
+    }
+
+    private TimeZone getTimeZone() {
+        if (mTimeZoneOffset > 0) {
+            return TimeZone.getTimeZone("GMT+" + mTimeZoneOffset);
+        }
+        if (mTimeZoneOffset < 0) {
+            return TimeZone.getTimeZone("GMT-" + Math.abs(mTimeZoneOffset));
+        }
+        return TimeZone.getTimeZone("GMT+0");
     }
 
     private void fillTimeMarksTitles(int startDayHour, int endDayHour, boolean format24) {
@@ -621,7 +636,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     }
 
     private long getTimeInMillis(long time) {
-        Calendar c = Calendar.getInstance();
+        Calendar c = Calendar.getInstance(getTimeZone());
         c.setTimeInMillis(time);
         return (c.get(Calendar.HOUR_OF_DAY) * 60 + c.get(Calendar.MINUTE))*60*1000;
     }

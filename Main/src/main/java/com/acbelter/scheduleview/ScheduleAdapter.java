@@ -26,20 +26,25 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.TimeZone;
 
 public class ScheduleAdapter extends BaseAdapter {
     private LayoutInflater mInflater;
     protected ArrayList<BaseScheduleItem> mItems;
     private int mStartHour;
     private int mEndHour;
+    private int mTimeZoneOffset;
     private SimpleDate mDate;
 
     public ScheduleAdapter(Context context, ArrayList<BaseScheduleItem> items,
-                           int startHour, int endHour) throws InvalidScheduleException {
+                           int startHour, int endHour, int timeZoneOffset)
+            throws InvalidScheduleException {
         super();
         mStartHour = startHour;
         mEndHour = endHour;
-        mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mTimeZoneOffset = timeZoneOffset;
+        mInflater = (LayoutInflater) context
+                .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         if (items != null) {
             mItems = items;
         } else {
@@ -47,6 +52,16 @@ public class ScheduleAdapter extends BaseAdapter {
         }
 
         prepareAndCheckSchedule();
+    }
+
+    private TimeZone getTimeZone() {
+        if (mTimeZoneOffset > 0) {
+            return TimeZone.getTimeZone("GMT+" + mTimeZoneOffset);
+        }
+        if (mTimeZoneOffset < 0) {
+            return TimeZone.getTimeZone("GMT-" + Math.abs(mTimeZoneOffset));
+        }
+        return TimeZone.getTimeZone("GMT+0");
     }
 
     private void prepareAndCheckSchedule() throws InvalidScheduleException {
@@ -75,7 +90,6 @@ public class ScheduleAdapter extends BaseAdapter {
             throw new InvalidScheduleException("Incorrect last time mark.");
         }
 
-
         for (int i = 0; i < mItems.size() - 1; i++) {
             if (mItems.get(i).end > mItems.get(i+1).start) {
                 throw new InvalidScheduleException("Intersecting items.");
@@ -84,7 +98,7 @@ public class ScheduleAdapter extends BaseAdapter {
     }
 
     private int getHour(long millis) {
-        Calendar c = Calendar.getInstance();
+        Calendar c = Calendar.getInstance(getTimeZone());
         c.setTimeInMillis(millis);
         return c.get(Calendar.HOUR_OF_DAY);
     }
@@ -177,13 +191,13 @@ public class ScheduleAdapter extends BaseAdapter {
         }
     }
 
-    private static class SimpleDate {
+    private class SimpleDate {
         int day;
         int month;
         int year;
 
         SimpleDate(long millis) {
-            Calendar c = Calendar.getInstance();
+            Calendar c = Calendar.getInstance(getTimeZone());
             c.setTimeInMillis(millis);
             day = c.get(Calendar.DAY_OF_YEAR);
             month = c.get(Calendar.MONTH);

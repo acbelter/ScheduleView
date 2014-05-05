@@ -9,6 +9,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 public class MainActivity extends ActionBarActivity implements AdapterView.OnItemClickListener {
+    private static final int TIME_ZONE_OFFSET = 3; // Moscow TimeZone
     private static final int START_HOUR = 8;
     private static final int END_HOUR = 0;
     private ScheduleAdapter mAdapter;
@@ -20,7 +21,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mSchedule = (ScheduleView) findViewById(R.id.schedule);
-        mSchedule.initTimeMarks(START_HOUR, END_HOUR, true);
+        mSchedule.configure(START_HOUR, END_HOUR, TIME_ZONE_OFFSET, true);
         mSchedule.setOnItemClickListener(this);
 
         ArrayList<BaseScheduleItem> items;
@@ -37,7 +38,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
 
         try {
             if (items != null) {
-                mAdapter = new ScheduleAdapter(this, items, START_HOUR, END_HOUR);
+                mAdapter = new ScheduleAdapter(this, items, START_HOUR, END_HOUR, TIME_ZONE_OFFSET);
             }
             mSchedule.setAdapter(mAdapter);
         } catch (ScheduleAdapter.InvalidScheduleException e) {
