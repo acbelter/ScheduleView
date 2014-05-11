@@ -309,6 +309,10 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
 
                 @Override
                 public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                    for (int i = 0; i < getChildCount(); i++) {
+                        getChildAt(i).setPressed(false);
+                    }
+
                     mListY -= (int) distanceY;
                     recalculateOffset();
 
