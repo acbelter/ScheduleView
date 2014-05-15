@@ -109,7 +109,6 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
         mClickedViewBounds = new Rect();
         mSelectedIds = new HashSet<Long>();
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        //mItemSelector = getResources().getDrawable(R.drawable.item_selector);
 
         mTopEdgeEffect = new EdgeEffectCompat(context);
         mBottomEdgeEffect = new EdgeEffectCompat(context);

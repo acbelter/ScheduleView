@@ -5,7 +5,6 @@ import android.support.v7.app.ActionBarActivity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Toast;
-import com.acbelter.scheduleview.GeneralScheduleItem;
 import com.acbelter.scheduleview.ScheduleAdapter;
 import com.acbelter.scheduleview.ScheduleView;
 
@@ -27,9 +26,9 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         mSchedule.configure(START_HOUR, END_HOUR, TIME_ZONE_OFFSET, true);
         mSchedule.setOnItemClickListener(this);
 
-        ArrayList<GeneralScheduleItem> items;
+        ArrayList<MyScheduleItem> items;
         if (savedInstanceState == null) {
-            items = new ArrayList<GeneralScheduleItem>();
+            items = new ArrayList<MyScheduleItem>();
             items.add(new MyScheduleItem(0, 1393912800000L, 1393917900000L));
             items.add(new MyScheduleItem(1, 1393919100000L, 1393924200000L));
             items.add(new MyScheduleItem(2, 1393930500000L, 1393941300000L));

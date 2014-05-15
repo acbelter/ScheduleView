@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import com.acbelter.scheduleview.GeneralScheduleItem;
 
-public class MyScheduleItem implements GeneralScheduleItem {
+public class MyScheduleItem extends GeneralScheduleItem implements Parcelable {
     protected long mId;
     protected long mStart;
     protected long mEnd;

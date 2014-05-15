@@ -5,15 +5,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import com.acbelter.scheduleview.GeneralScheduleItem;
 import com.acbelter.scheduleview.ScheduleAdapter;
 
 import java.util.ArrayList;
 
-public class MyScheduleAdapter extends ScheduleAdapter {
+public class MyScheduleAdapter extends ScheduleAdapter<MyScheduleItem> {
     private LayoutInflater mInflater;
 
-    public MyScheduleAdapter(Context context, ArrayList<GeneralScheduleItem> items,
+    public MyScheduleAdapter(Context context, ArrayList<MyScheduleItem> items,
                              int startHour, int endHour, int timeZoneOffset)
             throws InvalidScheduleException {
         super(context, items, startHour, endHour, timeZoneOffset);

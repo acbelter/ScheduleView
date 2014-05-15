@@ -26,14 +26,14 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.TimeZone;
 
-public class ScheduleAdapter extends BaseAdapter {
-    protected ArrayList<GeneralScheduleItem> mItems;
+public class ScheduleAdapter<T extends GeneralScheduleItem> extends BaseAdapter {
+    protected ArrayList<T> mItems;
     protected int mStartHour;
     protected int mEndHour;
     protected int mTimeZoneOffset;
     private SimpleDate mDate;
 
-    public ScheduleAdapter(Context context, ArrayList<GeneralScheduleItem> items,
+    public ScheduleAdapter(Context context, ArrayList<T> items,
                            int startHour, int endHour, int timeZoneOffset)
             throws InvalidScheduleException {
         super();
@@ -44,7 +44,7 @@ public class ScheduleAdapter extends BaseAdapter {
         if (items != null) {
             mItems = items;
         } else {
-            mItems = new ArrayList<GeneralScheduleItem>(0);
+            mItems = new ArrayList<T>(0);
         }
 
         prepareAndCheckSchedule();
@@ -99,7 +99,7 @@ public class ScheduleAdapter extends BaseAdapter {
         return c.get(Calendar.HOUR_OF_DAY);
     }
 
-    public boolean add(GeneralScheduleItem newItem) {
+    public boolean add(T newItem) {
         if (mItems.isEmpty()) {
             mItems.add(newItem);
             return true;
@@ -111,7 +111,7 @@ public class ScheduleAdapter extends BaseAdapter {
             return false;
         }
 
-        GeneralScheduleItem item;
+        T item;
         for (int i = 0; i < mItems.size(); i++) {
             item = mItems.get(i);
             if (newItem.getStartTime() == item.getStartTime() ||
@@ -144,7 +144,7 @@ public class ScheduleAdapter extends BaseAdapter {
         return removed;
     }
 
-    public ArrayList<GeneralScheduleItem> getItems() {
+    public ArrayList<T> getItems() {
         return mItems;
     }
 
@@ -154,7 +154,7 @@ public class ScheduleAdapter extends BaseAdapter {
     }
 
     @Override
-    public GeneralScheduleItem getItem(int position) {
+    public T getItem(int position) {
         return mItems.get(position);
     }
 
