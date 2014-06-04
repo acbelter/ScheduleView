@@ -21,7 +21,6 @@
         <attr name="internalPaddingTop" format="dimension"/>
         <attr name="internalPaddingBottom" format="dimension"/>
         <attr name="timeMarksDistance" format="dimension"/>
-        <attr name="itemSelector" format="integer"/>
         <attr name="android:fadeScrollbars"/>
         <attr name="android:scrollbarAlwaysDrawHorizontalTrack"/>
         <attr name="android:scrollbarAlwaysDrawVerticalTrack"/>
@@ -34,5 +33,13 @@
         <attr name="android:scrollbarTrackHorizontal"/>
         <attr name="android:scrollbarTrackVertical"/>
         <attr name="android:scrollbars"/>
+    </declare-styleable>
+
+    <declare-styleable name="ForegroundLinearLayout">
+        <attr name="android:foreground"/>
+    </declare-styleable>
+
+    <declare-styleable name="ForegroundRelativeLayout">
+        <attr name="android:foreground"/>
     </declare-styleable>
 </resources>

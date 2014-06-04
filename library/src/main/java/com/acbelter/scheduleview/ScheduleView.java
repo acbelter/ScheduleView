@@ -22,7 +22,6 @@ import android.content.res.TypedArray;
 import android.database.DataSetObserver;
 import android.graphics.Canvas;
 import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -44,9 +43,8 @@ import java.util.*;
 // TODO Add tests
 public class ScheduleView extends AdapterView<ScheduleAdapter> {
     private static final boolean DEBUG = false;
-    private static final String DEBUG_TAG = "ScheduleView";
+    private static final String TAG = ScheduleView.class.getSimpleName();
     private static final long MILLIS_IN_HOUR = 60*60*1000;
-    private static final int ALPHA_PERCENT = 50;
     // The distance between the first time mark and the top of the view
     private int mInternalPaddingTop;
     // The distance between the last time mark and the bottom of the view
@@ -101,9 +99,12 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     private ActionMode.Callback mActionModeCallback;
 
     private Set<Long> mSelectedIds;
-    private Drawable mItemSelector;
 
     public ScheduleView(Context context, AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public ScheduleView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs);
         mClipRect = new Rect();
         mClickedViewBounds = new Rect();
@@ -134,7 +135,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
         setVerticalScrollBarEnabled(true);
         setHorizontalScrollBarEnabled(false);
 
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ScheduleView);
+        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ScheduleView, defStyle, 0);
         try {
             if (a != null) {
                 DisplayMetrics dm = context.getResources().getDisplayMetrics();
@@ -150,7 +151,6 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, dm));
                 mItemPaddingRight = (int) a.getDimension(R.styleable.ScheduleView_itemPaddingRight,
                         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, dm));
-                mItemSelector = a.getDrawable(R.styleable.ScheduleView_itemSelector);
                 initializeScrollbars(a);
             }
         } finally {
@@ -268,7 +268,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 @Override
                 public boolean onDown(MotionEvent e) {
                     if (DEBUG) {
-                        Log.d(DEBUG_TAG, "onDown() y=" + mListY);
+                        Log.d(TAG, "onDown() y=" + mListY);
                     }
 
                     releaseEdgeEffects();
@@ -277,9 +277,10 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 }
 
                 @Override
-                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                public boolean onFling(MotionEvent e1, MotionEvent e2,
+                                       float velocityX, float velocityY) {
                     if (DEBUG) {
-                        Log.d(DEBUG_TAG, "onFling() y=" + mListY);
+                        Log.d(TAG, "onFling() y=" + mListY);
                     }
 
                     // Fling isn't needed
@@ -296,7 +297,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 }
 
                 @Override
-                public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                public boolean onScroll(MotionEvent e1, MotionEvent e2,
+                                        float distanceX, float distanceY) {
                     for (int i = 0; i < getChildCount(); i++) {
                         getChildAt(i).setPressed(false);
                     }
@@ -325,7 +327,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 @Override
                 public void onLongPress(MotionEvent e) {
                     if (DEBUG) {
-                        Log.d(DEBUG_TAG, "onLongPress() y=" + mListY);
+                        Log.d(TAG, "onLongPress() y=" + mListY);
                     }
 
                     View child;
@@ -359,7 +361,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                 @Override
                 public boolean onSingleTapUp(MotionEvent e) {
                     if (DEBUG) {
-                        Log.d(DEBUG_TAG, "onSingleTapConfirmed() y=" + mListY);
+                        Log.d(TAG, "onSingleTapConfirmed() y=" + mListY);
                     }
 
                     View child;
@@ -371,7 +373,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
                                 OnItemClickListener callback = getOnItemClickListener();
 
                                 if (callback != null) {
-                                    callback.onItemClick(ScheduleView.this, child, i, mAdapter.getItemId(i));
+                                    callback.onItemClick(ScheduleView.this, child, i,
+                                            mAdapter.getItemId(i));
                                 }
                             } else {
                                 if (!child.isSelected()) {
@@ -649,7 +652,7 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             child.getHitRect(mClickedViewBounds);
             if (mClickedViewBounds.contains((int) e.getX(), (int) e.getY())) {
                 if (DEBUG) {
-                    Log.d(DEBUG_TAG, "dispatchTouchEvent() to child " + i);
+                    Log.d(TAG, "dispatchTouchEvent() to child " + i);
                 }
                 // FIXME Add fade animation
                 child.dispatchTouchEvent(e);
@@ -717,7 +720,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
     }
 
     private int calculateBackgroundHeight() {
-        return mInternalPaddingTop + getPaddingTop() + mTimeMarks.size() * (mTimeMarkHeight + mTimeMarksDistance) +
+        return mInternalPaddingTop + getPaddingTop() + mTimeMarks.size() *
+                (mTimeMarkHeight + mTimeMarksDistance) +
                 mInternalPaddingBottom + getPaddingBottom();
     }
 
@@ -791,24 +795,6 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
         }
     }
 
-    @Override
-    protected void dispatchDraw(Canvas canvas) {
-        super.dispatchDraw(canvas);
-        if (mAdapter == null || mItemSelector == null) {
-            return;
-        }
-
-        Rect bounds = new Rect();
-        for (int i = 0; i < getChildCount(); i++) {
-            if (getChildAt(i).isSelected()) {
-                getChildAt(i).getHitRect(bounds);
-                mItemSelector.setBounds(bounds);
-                mItemSelector.setAlpha((int) (ALPHA_PERCENT * 2.55f));
-                mItemSelector.draw(canvas);
-            }
-        }
-    }
-
     public static class ScheduleState extends BaseSavedState {
         int listY;
         int backgroundHeight;
@@ -829,7 +815,8 @@ public class ScheduleView extends AdapterView<ScheduleAdapter> {
             selectedIds = new HashSet<Long>(Arrays.asList(ids));
         }
 
-        public static final Parcelable.Creator<ScheduleState> CREATOR = new Parcelable.Creator<ScheduleState>() {
+        public static final Parcelable.Creator<ScheduleState> CREATOR =
+                new Parcelable.Creator<ScheduleState>() {
             @Override
             public ScheduleState createFromParcel(Parcel in) {
                 return new ScheduleState(in);
